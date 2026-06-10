@@ -96,14 +96,14 @@ function renderAttention(rows) {
     .map(
       (row) => `
         <tr>
-          <td>
+          <td data-label="Business">
             <strong>${escapeHtml(row.business_name || "Unnamed business")}</strong><br />
             ${escapeHtml(row.email || "")}
           </td>
-          <td>${badge(row.attention_type)}</td>
-          <td>${badge(row.entitlement_status)}<br />${formatDate(row.expires_at)}</td>
-          <td>${badge(row.backup_status)}<br />${formatDate(row.last_backup_at)}</td>
-          <td>${Number(row.errors_24h || 0)}</td>
+          <td data-label="Issue">${badge(row.attention_type)}</td>
+          <td data-label="Subscription">${badge(row.entitlement_status)}<br />${formatDate(row.expires_at)}</td>
+          <td data-label="Backup">${badge(row.backup_status)}<br />${formatDate(row.last_backup_at)}</td>
+          <td data-label="Errors">${Number(row.errors_24h || 0)}</td>
         </tr>
       `,
     )
@@ -120,12 +120,12 @@ function renderBusinesses(rows) {
     .map(
       (row) => `
         <tr>
-          <td><strong>${escapeHtml(row.business_name || "Unnamed business")}</strong></td>
-          <td>${escapeHtml(row.owner_name || "")}</td>
-          <td>${escapeHtml(row.email || "")}</td>
-          <td>${badge(row.entitlement_status)}</td>
-          <td>${formatDate(row.trial_end_at)}</td>
-          <td>${formatDate(row.last_backup_at)}</td>
+          <td data-label="Business"><strong>${escapeHtml(row.business_name || "Unnamed business")}</strong></td>
+          <td data-label="Owner">${escapeHtml(row.owner_name || "")}</td>
+          <td data-label="Email">${escapeHtml(row.email || "")}</td>
+          <td data-label="Subscription">${badge(row.entitlement_status)}</td>
+          <td data-label="Trial ends">${formatDate(row.trial_end_at)}</td>
+          <td data-label="Last backup">${formatDate(row.last_backup_at)}</td>
         </tr>
       `,
     )

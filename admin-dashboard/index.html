@@ -3,18 +3,35 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#eef8fc" />
     <title>WashDesk Admin Dashboard</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="shell">
+      <header class="topbar" aria-label="WashDesk admin navigation">
+        <a class="brand" href="./index.html" aria-label="WashDesk Admin home">
+          <span class="brand-mark">
+            <img src="./washdesk-logo.png" alt="" />
+          </span>
+          <span>
+            <strong>WashDesk</strong>
+            <small>Admin console</small>
+          </span>
+        </a>
+        <div class="topbar-status">
+          <span class="live-dot"></span>
+          Production monitor
+        </div>
+      </header>
+
       <section class="hero">
         <div>
-          <p class="eyebrow">Operations</p>
+          <p class="eyebrow">Operations dashboard</p>
           <h1>WashDesk Admin</h1>
           <p class="subhead">
-            Monitor subscriptions, backups, and app errors before customers have
-            to report them.
+            A calm control room for subscription health, cloud backups, and app
+            errors across every car wash running WashDesk.
           </p>
         </div>
         <div class="hero-actions">
@@ -27,32 +44,52 @@
         </div>
       </section>
 
-      <section id="loginPanel" class="panel narrow">
-        <h2>Admin sign in</h2>
-        <p>
-          Use a WashDesk Supabase Auth user that is listed in
-          <code>public.admin_users</code>. Your Supabase dashboard or GitHub
-          login is separate and will not work here.
-        </p>
-        <form id="loginForm" class="form">
-          <label>
-            Email
-            <input id="emailInput" type="email" autocomplete="email" required />
-          </label>
-          <label>
-            Password
-            <input
-              id="passwordInput"
-              type="password"
-              autocomplete="current-password"
-              required
-            />
-          </label>
-          <button type="submit">Open dashboard</button>
-          <button id="magicLinkButton" class="secondary" type="button">
-            Email me a sign-in link
-          </button>
-        </form>
+      <section id="loginPanel" class="login-layout">
+        <div class="login-copy">
+          <p class="eyebrow">Owner access</p>
+          <h2>Sign in to see the live state of the business.</h2>
+          <p>
+            Use a WashDesk Supabase Auth user that is listed in
+            <code>public.admin_users</code>. Your Supabase dashboard or GitHub
+            login is separate and will not work here.
+          </p>
+          <div class="trust-grid" aria-label="Dashboard capabilities">
+            <span>Subscriptions</span>
+            <span>Backups</span>
+            <span>App errors</span>
+            <span>Customer health</span>
+          </div>
+        </div>
+
+        <div class="panel narrow login-card">
+          <h2>Admin sign in</h2>
+          <form id="loginForm" class="form">
+            <label>
+              Email
+              <input
+                id="emailInput"
+                type="email"
+                autocomplete="email"
+                required
+                placeholder="ndlovumpumelelo@icloud.com"
+              />
+            </label>
+            <label>
+              Password
+              <input
+                id="passwordInput"
+                type="password"
+                autocomplete="current-password"
+                required
+                placeholder="Your WashDesk Auth password"
+              />
+            </label>
+            <button type="submit">Open dashboard</button>
+            <button id="magicLinkButton" class="secondary" type="button">
+              Email me a sign-in link
+            </button>
+          </form>
+        </div>
       </section>
 
       <div id="status" class="status" role="status"></div>
@@ -66,6 +103,7 @@
               <p class="eyebrow">Needs attention</p>
               <h2>Priority queue</h2>
             </div>
+            <p>Fix subscription, backup, and error issues from the top down.</p>
           </div>
           <div class="table-wrap">
             <table>
@@ -89,6 +127,7 @@
               <p class="eyebrow">Customers</p>
               <h2>Businesses</h2>
             </div>
+            <p>Latest 200 businesses, ordered by signup date.</p>
           </div>
           <div class="table-wrap">
             <table>
