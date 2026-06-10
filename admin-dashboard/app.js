@@ -9,6 +9,7 @@ const els = {
   loginForm: document.querySelector("#loginForm"),
   emailInput: document.querySelector("#emailInput"),
   passwordInput: document.querySelector("#passwordInput"),
+  magicLinkButton: document.querySelector("#magicLinkButton"),
   status: document.querySelector("#status"),
   dashboard: document.querySelector("#dashboard"),
   refreshButton: document.querySelector("#refreshButton"),
@@ -200,11 +201,39 @@ els.loginForm.addEventListener("submit", async (event) => {
   });
 
   if (error) {
-    setStatus(error.message || "Sign in failed.", true);
+    const message = error.message?.includes("Invalid login credentials")
+      ? "Invalid login credentials. This must be a WashDesk Supabase Auth user, not your Supabase dashboard or GitHub login."
+      : error.message || "Sign in failed.";
+    setStatus(message, true);
     return;
   }
 
   await loadDashboard();
+});
+
+els.magicLinkButton.addEventListener("click", async () => {
+  const email = els.emailInput.value.trim();
+  if (!email) {
+    setStatus("Enter your admin email first.", true);
+    els.emailInput.focus();
+    return;
+  }
+
+  setStatus("Sending sign-in link...");
+  const { error } = await client.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: window.location.href,
+      shouldCreateUser: true,
+    },
+  });
+
+  if (error) {
+    setStatus(error.message || "Could not send sign-in link.", true);
+    return;
+  }
+
+  setStatus("Check your email for the WashDesk dashboard sign-in link.");
 });
 
 els.refreshButton.addEventListener("click", loadDashboard);

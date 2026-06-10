@@ -30,8 +30,9 @@
       <section id="loginPanel" class="panel narrow">
         <h2>Admin sign in</h2>
         <p>
-          Use the Supabase account that is listed in
-          <code>public.admin_users</code>.
+          Use a WashDesk Supabase Auth user that is listed in
+          <code>public.admin_users</code>. Your Supabase dashboard or GitHub
+          login is separate and will not work here.
         </p>
         <form id="loginForm" class="form">
           <label>
@@ -48,6 +49,9 @@
             />
           </label>
           <button type="submit">Open dashboard</button>
+          <button id="magicLinkButton" class="secondary" type="button">
+            Email me a sign-in link
+          </button>
         </form>
       </section>
 
