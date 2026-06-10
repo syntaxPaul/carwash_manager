@@ -1,0 +1,266 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+
+import 'manager_auth.dart';
+
+class BillingService extends ChangeNotifier {
+  BillingService._();
+  static final BillingService instance = BillingService._();
+
+  static const Duration _storeTimeout = Duration(seconds: 15);
+
+  final InAppPurchase _iap = InAppPurchase.instance;
+  StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
+
+  bool _started = false;
+  bool _storeAvailable = false;
+  bool _loading = false;
+  bool _purchasePending = false;
+  ProductDetails? _monthlyProduct;
+  String? _message;
+
+  bool get storeAvailable => _storeAvailable;
+  bool get loading => _loading;
+  bool get purchasePending => _purchasePending;
+  ProductDetails? get monthlyProduct => _monthlyProduct;
+  String? get message => _message;
+  bool get canPurchase =>
+      _storeAvailable && _monthlyProduct != null && !_purchasePending;
+
+  void start() {
+    _startListening();
+    unawaited(loadProducts());
+  }
+
+  void _startListening() {
+    if (_started) return;
+    _started = true;
+    _purchaseSubscription = _iap.purchaseStream.listen(
+      _handlePurchaseUpdates,
+      onError: (Object error) {
+        _purchasePending = false;
+        _message = 'Store purchase update failed: $error';
+        notifyListeners();
+      },
+    );
+  }
+
+  Future<void> loadProducts() async {
+    _startListening();
+    if (_loading) return;
+    _loading = true;
+    _message = null;
+    notifyListeners();
+
+    late final bool available;
+    try {
+      available = await _iap.isAvailable().timeout(_storeTimeout);
+    } on TimeoutException {
+      _storeAvailable = false;
+      _loading = false;
+      _monthlyProduct = null;
+      _message =
+          'The App Store is taking too long to respond. Check your connection and try again.';
+      notifyListeners();
+      return;
+    } catch (error) {
+      _storeAvailable = false;
+      _loading = false;
+      _monthlyProduct = null;
+      _message = 'The App Store could not be reached: $error';
+      notifyListeners();
+      return;
+    }
+    _storeAvailable = available;
+    if (!available) {
+      _loading = false;
+      _monthlyProduct = null;
+      _message = 'The App Store or Play Store is not available on this device.';
+      notifyListeners();
+      return;
+    }
+
+    late final ProductDetailsResponse response;
+    try {
+      response = await _iap.queryProductDetails(
+          const {managerMonthlyProductId}).timeout(_storeTimeout);
+    } on TimeoutException {
+      _loading = false;
+      _monthlyProduct = null;
+      _message =
+          'The App Store is taking too long to load the monthly plan. Try again.';
+      notifyListeners();
+      return;
+    } catch (error) {
+      _loading = false;
+      _monthlyProduct = null;
+      _message =
+          'The monthly plan could not be loaded from the App Store: $error';
+      notifyListeners();
+      return;
+    }
+    _loading = false;
+    if (response.error != null) {
+      _monthlyProduct = null;
+      _message = response.error!.message;
+      notifyListeners();
+      return;
+    }
+    if (response.notFoundIDs.contains(managerMonthlyProductId) ||
+        response.productDetails.isEmpty) {
+      _monthlyProduct = null;
+      _message =
+          'The monthly plan is not available from the App Store yet. Try again later.';
+      notifyListeners();
+      return;
+    }
+
+    _monthlyProduct = response.productDetails.firstWhere(
+      (product) => product.id == managerMonthlyProductId,
+      orElse: () => response.productDetails.first,
+    );
+    notifyListeners();
+  }
+
+  Future<void> buyMonthly() async {
+    start();
+    final account = ManagerAuth.instance.current;
+    if (account == null) {
+      throw StateError('Sign in before subscribing.');
+    }
+
+    var product = _monthlyProduct;
+    if (product == null) {
+      await loadProducts();
+      product = _monthlyProduct;
+    }
+    if (product == null) {
+      throw StateError(_message ?? 'The monthly plan is not available yet.');
+    }
+
+    _purchasePending = true;
+    _message = null;
+    notifyListeners();
+
+    final purchaseParam = PurchaseParam(
+      productDetails: product,
+      applicationUserName: account.id,
+    );
+    late final bool launched;
+    try {
+      launched = await _iap
+          .buyNonConsumable(purchaseParam: purchaseParam)
+          .timeout(_storeTimeout);
+    } on TimeoutException {
+      _purchasePending = false;
+      _message = 'The App Store is taking too long to start the purchase.';
+      notifyListeners();
+      return;
+    }
+    if (!launched) {
+      _purchasePending = false;
+      _message = 'The store could not start the purchase.';
+      notifyListeners();
+    }
+  }
+
+  Future<void> restorePurchases() async {
+    start();
+    _purchasePending = true;
+    _message = null;
+    notifyListeners();
+    try {
+      await _iap
+          .restorePurchases(
+            applicationUserName: ManagerAuth.instance.current?.id,
+          )
+          .timeout(_storeTimeout);
+    } on TimeoutException {
+      _purchasePending = false;
+      _message = 'The App Store is taking too long to restore purchases.';
+      notifyListeners();
+    } catch (error) {
+      _purchasePending = false;
+      _message = 'Could not restore purchases: $error';
+      notifyListeners();
+    }
+  }
+
+  Future<void> _handlePurchaseUpdates(
+    List<PurchaseDetails> purchases,
+  ) async {
+    if (purchases.isEmpty) {
+      _purchasePending = false;
+      _message = 'No WashDesk subscription was found to restore.';
+      notifyListeners();
+      return;
+    }
+
+    for (final purchase in purchases) {
+      if (purchase.productID != managerMonthlyProductId) {
+        if (purchase.pendingCompletePurchase) {
+          await _iap.completePurchase(purchase);
+        }
+        continue;
+      }
+
+      switch (purchase.status) {
+        case PurchaseStatus.pending:
+          _purchasePending = true;
+          _message =
+              'Purchase pending. We will unlock WashDesk once it clears.';
+          notifyListeners();
+          break;
+        case PurchaseStatus.purchased:
+        case PurchaseStatus.restored:
+          try {
+            await _deliverSubscription(purchase);
+          } on StateError catch (error) {
+            _purchasePending = false;
+            _message = error.message;
+            notifyListeners();
+          }
+          break;
+        case PurchaseStatus.error:
+          _purchasePending = false;
+          _message = purchase.error?.message ?? 'The purchase failed.';
+          notifyListeners();
+          break;
+        case PurchaseStatus.canceled:
+          _purchasePending = false;
+          _message = 'Purchase cancelled.';
+          notifyListeners();
+          break;
+      }
+
+      if (purchase.pendingCompletePurchase) {
+        await _iap.completePurchase(purchase);
+      }
+    }
+  }
+
+  Future<void> _deliverSubscription(PurchaseDetails purchase) async {
+    final verificationData = purchase.verificationData.serverVerificationData;
+    await ManagerAuth.instance.activateSubscription(
+      productId: purchase.productID,
+      purchaseId: purchase.purchaseID,
+      verificationSource: purchase.verificationData.source,
+      verificationData: verificationData.isEmpty
+          ? purchase.verificationData.localVerificationData
+          : verificationData,
+    );
+    _purchasePending = false;
+    _message = purchase.status == PurchaseStatus.restored
+        ? 'Subscription restored.'
+        : 'Subscription active.';
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _purchaseSubscription?.cancel();
+    super.dispose();
+  }
+}

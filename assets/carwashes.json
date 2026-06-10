@@ -1,0 +1,48 @@
+[
+  {
+    "id": "cw_capetown_cbd",
+    "code": "CTCBD",
+    "name": "AquaShine Cape Town CBD",
+    "lat": -33.92584,
+    "lng": 18.42322,
+    "address": "123 Bree St, Cape Town, 8000",
+    "phone": "+27 21 555 1234",
+    "open_hours": "Mon–Sun 08:00–18:00",
+    "services": [
+      {"name": "Full wash", "price": 200},
+      {"name": "Exterior only", "price": 120},
+      {"name": "Interior detail", "price": 350}
+    ]
+  },
+  {
+    "id": "cw_jhb_rosebank",
+    "code": "JHB-RB",
+    "name": "BlueWave Rosebank",
+    "lat": -26.14555,
+    "lng": 28.04123,
+    "address": "45 Oxford Rd, Rosebank, Johannesburg",
+    "phone": "+27 11 555 9876",
+    "open_hours": "Mon–Sat 08:00–19:00; Sun 09:00–17:00",
+    "services": [
+      {"name": "Full wash", "price": 220},
+      {"name": "Exterior + wax", "price": 180},
+      {"name": "Engine bay", "price": 250}
+    ]
+  },
+  {
+    "id": "cw_dbn_umhlanga",
+    "code": "DBN-UMH",
+    "name": "CrystalClean Umhlanga",
+    "lat": -29.72653,
+    "lng": 31.06764,
+    "address": "12 Lagoon Dr, Umhlanga",
+    "phone": "+27 31 555 2468",
+    "open_hours": "Mon–Sun 08:00–18:30",
+    "services": [
+      {"name": "Full wash", "price": 190},
+      {"name": "Exterior only", "price": 110},
+      {"name": "Interior valet", "price": 320}
+    ]
+  }
+]
+
