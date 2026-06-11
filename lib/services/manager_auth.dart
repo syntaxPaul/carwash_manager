@@ -70,8 +70,7 @@ class ManagerAccount {
 
   bool get hasAccess {
     if (isActive) return true;
-    if (!isTrialing) return false;
-    return DateTime.now().millisecondsSinceEpoch <= trialEndTs;
+    return false;
   }
 
   Duration get trialRemaining {

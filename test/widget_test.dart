@@ -7,7 +7,7 @@ void main() {
     await tester.pumpWidget(const App());
 
     expect(find.text('Less paperwork. More paid washes.'), findsOneWidget);
-    expect(find.text('Start 5-day free trial'), findsOneWidget);
+    expect(find.text('Create account'), findsOneWidget);
     expect(find.text('Sign in'), findsOneWidget);
   });
 }

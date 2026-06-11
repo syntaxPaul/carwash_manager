@@ -174,6 +174,7 @@ function entitlementStatus(
     case "SUBSCRIBED":
     case "DID_RENEW":
     case "DID_RECOVER":
+    case "DID_CHANGE_RENEWAL_STATUS":
       return "active";
     case "DID_FAIL_TO_RENEW":
       return "billing_retry";

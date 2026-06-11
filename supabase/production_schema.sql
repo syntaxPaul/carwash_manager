@@ -504,11 +504,9 @@ begin
   where user_id = current_user_id
   limit 1;
 
-  if entitlement.status in ('active', 'grace_period') and
+  if entitlement.status in ('active', 'trialing', 'grace_period') and
      (entitlement.expires_at is null or entitlement.expires_at > now()) then
     computed_status := 'active';
-  elsif business.trial_end_at > now() then
-    computed_status := 'trialing';
   else
     computed_status := 'expired';
   end if;

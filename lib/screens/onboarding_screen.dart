@@ -42,11 +42,11 @@ class OnboardingScreen extends StatelessWidget {
                           onPressed: () =>
                               Navigator.pushNamed(context, '/sign-up'),
                           icon: const Icon(Icons.arrow_forward_rounded),
-                          label: const Text('Start 5-day free trial'),
+                          label: const Text('Create account'),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Then $subscriptionPrice/month. Built for one car wash business.',
+                          'Activate the App Store subscription after signup. New eligible accounts get a 5-day free trial, then $subscriptionPrice/month.',
                           textAlign: TextAlign.center,
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -151,7 +151,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return _AuthScaffold(
       title: 'Create your account',
       subtitle:
-          'Start with a 5-day free trial. Then R499.99 per month for your car wash workspace.',
+          'Create your WashDesk account, then activate the App Store subscription. Eligible new accounts get a 5-day free trial before billing starts.',
       footer: TextButton(
         onPressed: () => Navigator.pushReplacementNamed(context, '/sign-in'),
         child: const Text('Already have an account? Sign in'),

@@ -10,14 +10,17 @@ class BillingService extends ChangeNotifier {
   static final BillingService instance = BillingService._();
 
   static const Duration _storeTimeout = Duration(seconds: 15);
+  static const Duration _purchaseUpdateTimeout = Duration(seconds: 60);
 
   final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
+  Timer? _purchaseWatchdog;
 
   bool _started = false;
   bool _storeAvailable = false;
   bool _loading = false;
   bool _purchasePending = false;
+  DateTime? _loadingStartedAt;
   ProductDetails? _monthlyProduct;
   String? _message;
 
@@ -47,10 +50,17 @@ class BillingService extends ChangeNotifier {
     );
   }
 
-  Future<void> loadProducts() async {
+  Future<void> loadProducts({bool force = false}) async {
     _startListening();
-    if (_loading) return;
+    if (_loading) {
+      final started = _loadingStartedAt;
+      final isStale =
+          started == null || DateTime.now().difference(started) > _storeTimeout;
+      if (!force && !isStale) return;
+      _loading = false;
+    }
     _loading = true;
+    _loadingStartedAt = DateTime.now();
     _message = null;
     notifyListeners();
 
@@ -60,6 +70,7 @@ class BillingService extends ChangeNotifier {
     } on TimeoutException {
       _storeAvailable = false;
       _loading = false;
+      _loadingStartedAt = null;
       _monthlyProduct = null;
       _message =
           'The App Store is taking too long to respond. Check your connection and try again.';
@@ -68,6 +79,7 @@ class BillingService extends ChangeNotifier {
     } catch (error) {
       _storeAvailable = false;
       _loading = false;
+      _loadingStartedAt = null;
       _monthlyProduct = null;
       _message = 'The App Store could not be reached: $error';
       notifyListeners();
@@ -76,6 +88,7 @@ class BillingService extends ChangeNotifier {
     _storeAvailable = available;
     if (!available) {
       _loading = false;
+      _loadingStartedAt = null;
       _monthlyProduct = null;
       _message = 'The App Store or Play Store is not available on this device.';
       notifyListeners();
@@ -88,6 +101,7 @@ class BillingService extends ChangeNotifier {
           const {managerMonthlyProductId}).timeout(_storeTimeout);
     } on TimeoutException {
       _loading = false;
+      _loadingStartedAt = null;
       _monthlyProduct = null;
       _message =
           'The App Store is taking too long to load the monthly plan. Try again.';
@@ -95,6 +109,7 @@ class BillingService extends ChangeNotifier {
       return;
     } catch (error) {
       _loading = false;
+      _loadingStartedAt = null;
       _monthlyProduct = null;
       _message =
           'The monthly plan could not be loaded from the App Store: $error';
@@ -102,6 +117,7 @@ class BillingService extends ChangeNotifier {
       return;
     }
     _loading = false;
+    _loadingStartedAt = null;
     if (response.error != null) {
       _monthlyProduct = null;
       _message = response.error!.message;
@@ -133,7 +149,7 @@ class BillingService extends ChangeNotifier {
 
     var product = _monthlyProduct;
     if (product == null) {
-      await loadProducts();
+      await loadProducts(force: true);
       product = _monthlyProduct;
     }
     if (product == null) {
@@ -158,18 +174,28 @@ class BillingService extends ChangeNotifier {
       _message = 'The App Store is taking too long to start the purchase.';
       notifyListeners();
       return;
+    } catch (error) {
+      _purchasePending = false;
+      _message = 'The App Store could not start the purchase: $error';
+      notifyListeners();
+      return;
     }
     if (!launched) {
       _purchasePending = false;
       _message = 'The store could not start the purchase.';
       notifyListeners();
+      return;
     }
+    _message = 'Confirm the subscription in the App Store sheet.';
+    _startPurchaseWatchdog();
+    notifyListeners();
   }
 
   Future<void> restorePurchases() async {
     start();
     _purchasePending = true;
     _message = null;
+    _startPurchaseWatchdog();
     notifyListeners();
     try {
       await _iap
@@ -179,10 +205,12 @@ class BillingService extends ChangeNotifier {
           .timeout(_storeTimeout);
     } on TimeoutException {
       _purchasePending = false;
+      _purchaseWatchdog?.cancel();
       _message = 'The App Store is taking too long to restore purchases.';
       notifyListeners();
     } catch (error) {
       _purchasePending = false;
+      _purchaseWatchdog?.cancel();
       _message = 'Could not restore purchases: $error';
       notifyListeners();
     }
@@ -193,12 +221,14 @@ class BillingService extends ChangeNotifier {
   ) async {
     if (purchases.isEmpty) {
       _purchasePending = false;
+      _purchaseWatchdog?.cancel();
       _message = 'No WashDesk subscription was found to restore.';
       notifyListeners();
       return;
     }
 
     for (final purchase in purchases) {
+      _purchaseWatchdog?.cancel();
       if (purchase.productID != managerMonthlyProductId) {
         if (purchase.pendingCompletePurchase) {
           await _iap.completePurchase(purchase);
@@ -258,8 +288,20 @@ class BillingService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _startPurchaseWatchdog() {
+    _purchaseWatchdog?.cancel();
+    _purchaseWatchdog = Timer(_purchaseUpdateTimeout, () {
+      if (!_purchasePending) return;
+      _purchasePending = false;
+      _message =
+          'The App Store did not finish the subscription request. Try again or use Restore purchase.';
+      notifyListeners();
+    });
+  }
+
   @override
   void dispose() {
+    _purchaseWatchdog?.cancel();
     _purchaseSubscription?.cancel();
     super.dispose();
   }
