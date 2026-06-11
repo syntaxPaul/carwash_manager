@@ -10,7 +10,7 @@ import '../data/db.dart';
 import '../data/settings.dart';
 import 'supabase_backend.dart';
 
-const int managerTrialDays = 5;
+const int managerTrialDays = 7;
 const String managerSubscriptionPrice = 'R499.99';
 const String managerMonthlyProductId = 'washdesk_monthly';
 

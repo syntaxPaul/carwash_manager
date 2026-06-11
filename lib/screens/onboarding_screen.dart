@@ -7,7 +7,7 @@ const String appLogoAsset = 'assets/branding/app_logo.png';
 const String appIconSourceAsset = 'assets/branding/app_icon.png';
 const String landingHeroImageAsset = 'assets/branding/landing_carwash.jpg';
 const String subscriptionPrice = 'R499.99';
-const String trialOffer = '5-day free trial';
+const String trialOffer = '1-week free trial';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
@@ -46,7 +46,7 @@ class OnboardingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Activate the App Store subscription after signup. New eligible accounts get a 5-day free trial, then $subscriptionPrice/month.',
+                          'Activate the App Store subscription after signup. New eligible accounts get a 1-week free trial, then $subscriptionPrice/month.',
                           textAlign: TextAlign.center,
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -151,7 +151,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return _AuthScaffold(
       title: 'Create your account',
       subtitle:
-          'Create your WashDesk account, then activate the App Store subscription. Eligible new accounts get a 5-day free trial before billing starts.',
+          'Create your WashDesk account, then activate the App Store subscription. Eligible new accounts get a 1-week free trial before billing starts.',
       footer: TextButton(
         onPressed: () => Navigator.pushReplacementNamed(context, '/sign-in'),
         child: const Text('Already have an account? Sign in'),

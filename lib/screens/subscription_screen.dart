@@ -7,7 +7,7 @@ import '../widgets/app_background.dart';
 const String washDeskSubscriptionTitle = 'WashDesk Monthly Subscription';
 const String washDeskSubscriptionPeriod = '1 month';
 const String washDeskSubscriptionRenewal =
-    'Auto-renewable subscription, billed every 1 month after the free trial unless cancelled.';
+    'Auto-renewable subscription, billed every 1 month after the 1-week free trial unless cancelled.';
 const String washDeskIncludedService =
     'Includes one car wash business workspace with bookings, walk-ins, wash '
     'history, employees, services, expenses, reports, daily totals and cloud '
@@ -75,7 +75,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   ? 'Use your WashDesk account to manage subscription access.'
                   : account.hasAccess
                       ? 'Your WashDesk subscription is active.'
-                      : 'Start the App Store subscription to unlock WashDesk. Eligible new accounts receive a 5-day free trial, then Apple bills the monthly price automatically unless cancelled.';
+                      : 'Start the App Store subscription to unlock WashDesk. Eligible new accounts receive a 1-week free trial, then Apple bills the monthly price automatically unless cancelled.';
 
               return ListView(
                 padding: const EdgeInsets.fromLTRB(20, 28, 20, 36),
@@ -244,9 +244,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   String _subscribeLabel(BillingService billing) {
     final price = billing.monthlyProduct?.price;
     if (price == null || price.trim().isEmpty) {
-      return 'Start 5-day free trial';
+      return 'Start 1-week free trial';
     }
-    return 'Start 5-day free trial, then $price / month';
+    return 'Start 1-week free trial, then $price / month';
   }
 }
 
@@ -339,8 +339,7 @@ class _RequiredSubscriptionSummary extends StatelessWidget {
           ),
           const _SummaryLine(
             label: 'Free trial',
-            value:
-                '$managerTrialDays days for eligible new subscribers, managed by Apple.',
+            value: '1 week for eligible new subscribers, managed by Apple.',
           ),
           const _SummaryLine(
             label: 'Renewal',
@@ -464,7 +463,7 @@ class _PlanCard extends StatelessWidget {
           const _PlanInfoRow(
             label: 'Trial',
             value:
-                '$managerTrialDays-day free trial for eligible new subscribers. Apple bills automatically after the trial unless cancelled.',
+                '1-week free trial for eligible new subscribers. Apple bills automatically after the trial unless cancelled.',
           ),
           if (isActive) ...[
             const SizedBox(height: 8),
