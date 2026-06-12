@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
 import 'manager_auth.dart';
@@ -11,6 +12,8 @@ class BillingService extends ChangeNotifier {
 
   static const Duration _storeTimeout = Duration(seconds: 15);
   static const Duration _purchaseUpdateTimeout = Duration(seconds: 60);
+  static const MethodChannel _storeKitChannel =
+      MethodChannel('washdesk/storekit');
 
   final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
@@ -29,8 +32,11 @@ class BillingService extends ChangeNotifier {
   bool get purchasePending => _purchasePending;
   ProductDetails? get monthlyProduct => _monthlyProduct;
   String? get message => _message;
-  bool get canPurchase =>
-      _storeAvailable && _monthlyProduct != null && !_purchasePending;
+  bool get canPurchase {
+    if (_purchasePending) return false;
+    if (defaultTargetPlatform == TargetPlatform.iOS) return true;
+    return _storeAvailable && _monthlyProduct != null;
+  }
 
   void start() {
     _startListening();
@@ -147,6 +153,11 @@ class BillingService extends ChangeNotifier {
       throw StateError('Sign in before subscribing.');
     }
 
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      await _buyMonthlyWithStoreKit(account);
+      return;
+    }
+
     var product = _monthlyProduct;
     if (product == null) {
       await loadProducts(force: true);
@@ -189,6 +200,88 @@ class BillingService extends ChangeNotifier {
     _message = 'Confirm the subscription in the App Store sheet.';
     _startPurchaseWatchdog();
     notifyListeners();
+  }
+
+  Future<void> _buyMonthlyWithStoreKit(ManagerAccount account) async {
+    _loading = false;
+    _purchasePending = true;
+    _message = 'Opening the App Store subscription sheet...';
+    _startPurchaseWatchdog();
+    notifyListeners();
+
+    late final Map<Object?, Object?> result;
+    try {
+      final response = await _storeKitChannel.invokeMapMethod<Object?, Object?>(
+        'purchaseSubscription',
+        {
+          'productId': managerMonthlyProductId,
+          'appAccountToken': account.id,
+        },
+      ).timeout(_purchaseUpdateTimeout);
+      result = response ?? const <Object?, Object?>{};
+    } on TimeoutException {
+      _purchasePending = false;
+      _purchaseWatchdog?.cancel();
+      _message =
+          'The App Store did not open in time. Check your connection and try again.';
+      notifyListeners();
+      return;
+    } on PlatformException catch (error) {
+      _purchasePending = false;
+      _purchaseWatchdog?.cancel();
+      _message = error.message ?? 'The App Store could not start the purchase.';
+      notifyListeners();
+      return;
+    } catch (error) {
+      _purchasePending = false;
+      _purchaseWatchdog?.cancel();
+      _message = 'The App Store could not start the purchase: $error';
+      notifyListeners();
+      return;
+    }
+
+    final status = result['status']?.toString();
+    switch (status) {
+      case 'purchased':
+      case 'restored':
+        try {
+          await ManagerAuth.instance.activateSubscription(
+            productId:
+                result['productId']?.toString() ?? managerMonthlyProductId,
+            purchaseId: result['transactionId']?.toString(),
+            verificationSource: 'storekit2',
+            verificationData: result['verificationData']?.toString() ?? '',
+          );
+          _purchasePending = false;
+          _purchaseWatchdog?.cancel();
+          _message = 'Subscription active.';
+          notifyListeners();
+        } on StateError catch (error) {
+          _purchasePending = false;
+          _purchaseWatchdog?.cancel();
+          _message = error.message;
+          notifyListeners();
+        }
+        break;
+      case 'pending':
+        _purchasePending = false;
+        _purchaseWatchdog?.cancel();
+        _message =
+            'Purchase pending. Apple will finish it after payment approval.';
+        notifyListeners();
+        break;
+      case 'cancelled':
+        _purchasePending = false;
+        _purchaseWatchdog?.cancel();
+        _message = 'Purchase cancelled.';
+        notifyListeners();
+        break;
+      default:
+        _purchasePending = false;
+        _purchaseWatchdog?.cancel();
+        _message = 'The App Store did not return a completed subscription.';
+        notifyListeners();
+    }
   }
 
   Future<void> restorePurchases() async {

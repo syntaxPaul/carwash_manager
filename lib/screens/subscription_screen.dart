@@ -152,11 +152,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                               )
                             else
                               FilledButton.icon(
-                                onPressed: account == null ||
-                                        !billing.canPurchase ||
-                                        billing.loading
-                                    ? null
-                                    : _buyMonthly,
+                                onPressed:
+                                    account == null || !billing.canPurchase
+                                        ? null
+                                        : _buyMonthly,
                                 icon: billing.purchasePending
                                     ? const SizedBox.square(
                                         dimension: 18,
