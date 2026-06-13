@@ -484,6 +484,7 @@ declare
   current_user_id uuid := auth.uid();
   business public.businesses;
   entitlement public.subscription_entitlements;
+  admin_access boolean := public.is_admin();
   computed_status text;
 begin
   if current_user_id is null then
@@ -504,7 +505,9 @@ begin
   where user_id = current_user_id
   limit 1;
 
-  if entitlement.status in ('active', 'trialing', 'grace_period') and
+  if admin_access then
+    computed_status := 'active';
+  elsif entitlement.status in ('active', 'trialing', 'grace_period') and
      (entitlement.expires_at is null or entitlement.expires_at > now()) then
     computed_status := 'active';
   else
@@ -520,6 +523,7 @@ begin
     'trial_end_ts', floor(extract(epoch from business.trial_end_at) * 1000),
     'subscription_status', computed_status,
     'entitlement_status', entitlement.status,
+    'admin_access', admin_access,
     'subscription_product_id', entitlement.product_id,
     'subscription_purchase_id', entitlement.transaction_id,
     'subscription_updated_ts', floor(extract(epoch from entitlement.updated_at) * 1000),
