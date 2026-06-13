@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/settings.dart';
 import '../services/loyalty_service.dart';
 import '../widgets/bottom_nav.dart';
 
@@ -83,9 +84,11 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                     itemCount: _rows.length,
                     itemBuilder: (context, index) {
                       final row = _rows[index];
+                      final washesPerReward =
+                          AppSettings.instance.loyaltyWashesPerReward;
                       final punches = (row['punches'] as num).toInt();
                       final redemptions = (row['redemptions'] as num).toInt();
-                      final unlocked = punches ~/ 5;
+                      final unlocked = punches ~/ washesPerReward;
                       final available = unlocked - redemptions < 0
                           ? 0
                           : unlocked - redemptions;
@@ -102,7 +105,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                             children: [
                               Text('Carwash: ${row['carwash_name'] ?? 'N/A'}'),
                               Text(
-                                  'Punches: $punches • Free washes unlocked: ${punches ~/ 5} • Redeemed: $redemptions'),
+                                  'Punches: $punches • Free washes unlocked: $unlocked • Redeemed: $redemptions'),
                               if (lastTs != null)
                                 Text(
                                     'Last visit: ${DateTime.fromMillisecondsSinceEpoch(lastTs).toString().substring(0, 16)}'),
@@ -117,7 +120,8 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                                   child: Text('Redeem x$available'),
                                 )
                               else
-                                Text('${punches % 5}/5 to go'),
+                                Text(
+                                    '${punches % washesPerReward}/$washesPerReward to go'),
                             ],
                           ),
                         ),

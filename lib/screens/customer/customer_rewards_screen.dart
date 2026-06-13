@@ -227,7 +227,7 @@ class _CustomerRewardsScreenState extends State<CustomerRewardsScreen> {
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
-              children: List.generate(5, (index) {
+              children: List.generate(summary.washesPerReward, (index) {
                 final earned = index < filled;
                 return CircleAvatar(
                   radius: 18,
@@ -257,7 +257,7 @@ class _CustomerRewardsScreenState extends State<CustomerRewardsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                    '${summary.punchesTowardReward}/5 punches towards next free wash'),
+                    '${summary.punchesTowardReward}/${summary.washesPerReward} punches towards next free wash'),
                 if (summary.availableRewards > 0)
                   FilledButton.icon(
                     onPressed: () => _redeem(summary),

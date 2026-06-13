@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/db.dart';
+import '../data/settings.dart';
 import '../models/loyalty_summary.dart';
 
 class LoyaltyService {
@@ -88,7 +89,7 @@ class LoyaltyService {
           [customerId, carwashId],
         )) ??
         0;
-    final available = punches ~/ 5 - redemptions;
+    final available = punches ~/ _washesPerReward - redemptions;
     if (available <= 0) {
       throw StateError('No free washes available to redeem.');
     }
@@ -124,7 +125,7 @@ class LoyaltyService {
           [normalizedPlateKey, carwashId],
         )) ??
         0;
-    final available = punches ~/ 5 - redemptions;
+    final available = punches ~/ _washesPerReward - redemptions;
     if (available <= 0) {
       throw StateError('No free washes available to redeem.');
     }
@@ -259,4 +260,6 @@ class LoyaltyService {
         .replaceAll(RegExp(r'[^A-Z0-9]'), '');
     return normalized.isEmpty ? null : normalized;
   }
+
+  int get _washesPerReward => AppSettings.instance.loyaltyWashesPerReward;
 }

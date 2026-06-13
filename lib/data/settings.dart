@@ -17,6 +17,7 @@ class AppSettings {
   bool autoPostTransactions = true;
   bool autoMarkOverdue = true;
   bool autoGenerateMonthlyClose = true;
+  int loyaltyWashesPerReward = 5;
 
   final _loaded = ValueNotifier<bool>(false);
   ValueListenable<bool> get isLoaded => _loaded;
@@ -51,6 +52,7 @@ class AppSettings {
     autoPostTransactions = true;
     autoMarkOverdue = true;
     autoGenerateMonthlyClose = true;
+    loyaltyWashesPerReward = 5;
   }
 
   void _applyPair(String key, String value) {
@@ -83,6 +85,10 @@ class AppSettings {
         autoGenerateMonthlyClose =
             value == '1' || value.toLowerCase() == 'true';
         break;
+      case 'loyalty_washes_per_reward':
+        loyaltyWashesPerReward =
+            (int.tryParse(value) ?? loyaltyWashesPerReward).clamp(1, 99);
+        break;
     }
   }
 
@@ -106,6 +112,7 @@ class AppSettings {
     upsert('auto_post_transactions', autoPostTransactions ? '1' : '0');
     upsert('auto_mark_overdue', autoMarkOverdue ? '1' : '0');
     upsert('auto_generate_monthly_close', autoGenerateMonthlyClose ? '1' : '0');
+    upsert('loyalty_washes_per_reward', loyaltyWashesPerReward.toString());
     await batch.commit(noResult: true);
   }
 }

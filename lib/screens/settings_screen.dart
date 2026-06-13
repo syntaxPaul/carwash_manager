@@ -15,6 +15,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _vatCtrl;
   late final TextEditingController _taxCtrl;
   late final TextEditingController _currencyCtrl;
+  late final TextEditingController _loyaltyWashesCtrl;
   bool _includeVat = true;
   bool _autoClassifyExpenses = true;
   bool _autoPostTransactions = true;
@@ -31,6 +32,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _taxCtrl =
         TextEditingController(text: (s.taxRate * 100).toStringAsFixed(2));
     _currencyCtrl = TextEditingController(text: s.currencySymbol);
+    _loyaltyWashesCtrl =
+        TextEditingController(text: s.loyaltyWashesPerReward.toString());
     _includeVat = s.pricesIncludeVat;
     _autoClassifyExpenses = s.autoClassifyExpenses;
     _autoPostTransactions = s.autoPostTransactions;
@@ -44,6 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _vatCtrl.dispose();
     _taxCtrl.dispose();
     _currencyCtrl.dispose();
+    _loyaltyWashesCtrl.dispose();
     super.dispose();
   }
 
@@ -57,6 +61,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     s.currencySymbol =
         _currencyCtrl.text.trim().isEmpty ? 'R' : _currencyCtrl.text.trim();
     s.pricesIncludeVat = _includeVat;
+    s.loyaltyWashesPerReward =
+        (int.tryParse(_loyaltyWashesCtrl.text.trim()) ?? 5).clamp(1, 99);
     s.autoClassifyExpenses = _autoClassifyExpenses;
     s.autoPostTransactions = _autoPostTransactions;
     s.autoMarkOverdue = _autoMarkOverdue;
@@ -411,6 +417,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Prices include tax (VAT)'),
               value: _includeVat,
               onChanged: (v) => setState(() => _includeVat = v),
+            ),
+            const SizedBox(height: 16),
+            const Text('Loyalty',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _loyaltyWashesCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Washes per free wash',
+                helperText:
+                    'Example: 5 means every 5 paid washes unlocks 1 free wash.',
+              ),
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                final count = int.tryParse(value?.trim() ?? '');
+                if (count == null || count < 1 || count > 99) {
+                  return 'Enter a number from 1 to 99';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             const Text('Automation',
