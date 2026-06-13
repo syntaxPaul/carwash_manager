@@ -330,7 +330,6 @@ class _BookingsScreenState extends State<BookingsScreen> {
     }
 
     final formKey = GlobalKey<FormState>();
-    final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
     final vehicleCtrl = TextEditingController();
     final plateCtrl = TextEditingController();
@@ -421,15 +420,6 @@ class _BookingsScreenState extends State<BookingsScreen> {
                           carwashCode = selected['code'] as String;
                         });
                       },
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: nameCtrl,
-                      decoration:
-                          const InputDecoration(labelText: 'Customer name'),
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Enter a name'
-                          : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
@@ -610,7 +600,6 @@ class _BookingsScreenState extends State<BookingsScreen> {
                           db,
                           carwashId: carwashId,
                           carwashCode: carwashCode,
-                          customerName: nameCtrl.text.trim(),
                           phone: phoneCtrl.text.trim(),
                           vehicle: vehicleCtrl.text.trim().isEmpty
                               ? null
@@ -683,7 +672,6 @@ class _BookingsScreenState extends State<BookingsScreen> {
     Database db, {
     required String carwashId,
     required String carwashCode,
-    required String customerName,
     required String phone,
     required String paymentMethod,
     required DateTime appt,
@@ -714,7 +702,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
         'carwash_id': carwashId,
         'ts_created': now.millisecondsSinceEpoch,
         'appt_ts': appt.millisecondsSinceEpoch,
-        'customer_name': customerName,
+        'customer_name': 'Walk-in customer',
         'phone': phone,
         'vehicle': vehicle,
         'license_plate': licensePlate,
