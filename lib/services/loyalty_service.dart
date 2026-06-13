@@ -5,6 +5,36 @@ import '../data/db.dart';
 import '../data/settings.dart';
 import '../models/loyalty_summary.dart';
 
+class PlateLoyaltyStatus {
+  final String plateKey;
+  final String displayPlate;
+  final int punches;
+  final int redemptions;
+  final int washesPerReward;
+
+  const PlateLoyaltyStatus({
+    required this.plateKey,
+    required this.displayPlate,
+    required this.punches,
+    required this.redemptions,
+    required this.washesPerReward,
+  });
+
+  int get unlockedRewards => punches ~/ washesPerReward;
+  int get availableRewards {
+    final value = unlockedRewards - redemptions;
+    return value < 0 ? 0 : value;
+  }
+
+  int get punchesTowardReward => punches % washesPerReward;
+
+  String get label {
+    if (availableRewards == 1) return '1 free wash available';
+    if (availableRewards > 1) return '$availableRewards free washes available';
+    return '$punchesTowardReward/$washesPerReward washes';
+  }
+}
+
 class LoyaltyService {
   LoyaltyService._();
   static final LoyaltyService instance = LoyaltyService._();
@@ -146,6 +176,34 @@ class LoyaltyService {
       'ts': DateTime.now().millisecondsSinceEpoch,
       'notes': notes,
     });
+  }
+
+  Future<PlateLoyaltyStatus?> plateStatus({
+    required String plate,
+    required String carwashId,
+  }) async {
+    final plateKey = _plateKey(plate);
+    if (plateKey == null) return null;
+    final db = await AppDb.instance.db;
+    await _ensurePlateSchema(db);
+
+    final punches = Sqflite.firstIntValue(await db.rawQuery(
+          'SELECT COUNT(*) FROM loyalty_punches WHERE plate_key = ? AND carwash_id = ?',
+          [plateKey, carwashId],
+        )) ??
+        0;
+    final redemptions = Sqflite.firstIntValue(await db.rawQuery(
+          'SELECT COUNT(*) FROM loyalty_redemptions WHERE plate_key = ? AND carwash_id = ?',
+          [plateKey, carwashId],
+        )) ??
+        0;
+    return PlateLoyaltyStatus(
+      plateKey: plateKey,
+      displayPlate: _displayPlate(plate),
+      punches: punches,
+      redemptions: redemptions,
+      washesPerReward: _washesPerReward,
+    );
   }
 
   Future<List<Map<String, Object?>>> managerLeaderboard() async {

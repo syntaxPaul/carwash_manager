@@ -21,6 +21,53 @@ class BookingsScreen extends StatefulWidget {
   State<BookingsScreen> createState() => _BookingsScreenState();
 }
 
+class _PlateLoyaltyNotice extends StatelessWidget {
+  final PlateLoyaltyStatus status;
+
+  const _PlateLoyaltyNotice({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final hasReward = status.availableRewards > 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: hasReward
+            ? scheme.primaryContainer
+            : scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasReward ? scheme.primary : scheme.outlineVariant,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            hasReward
+                ? Icons.card_giftcard_rounded
+                : Icons.local_car_wash_rounded,
+            color:
+                hasReward ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              status.label,
+              style: TextStyle(
+                color: hasReward
+                    ? scheme.onPrimaryContainer
+                    : scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _BookingsScreenState extends State<BookingsScreen> {
   final _dateFmt = DateFormat('EEE, d MMM • HH:mm');
   bool _loading = true;
@@ -345,6 +392,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
     String? paymentError;
     String? employeeId;
     String? employeeName;
+    PlateLoyaltyStatus? plateLoyaltyStatus;
+    int plateLookupVersion = 0;
 
     Future<void> pickAppt() async {
       final date = await showDatePicker(
@@ -361,6 +410,18 @@ class _BookingsScreenState extends State<BookingsScreen> {
       );
       if (time == null) return;
       appt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    }
+
+    Future<void> refreshPlateLoyalty(
+      void Function(void Function()) setSheetState,
+    ) async {
+      final lookupId = ++plateLookupVersion;
+      final status = await LoyaltyService.instance.plateStatus(
+        plate: plateCtrl.text,
+        carwashId: carwashId,
+      );
+      if (!mounted || lookupId != plateLookupVersion) return;
+      setSheetState(() => plateLoyaltyStatus = status);
     }
 
     if (!mounted) return;
@@ -419,6 +480,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                           carwashId = value;
                           carwashCode = selected['code'] as String;
                         });
+                        unawaited(refreshPlateLoyalty(setSheetState));
                       },
                     ),
                     const SizedBox(height: 12),
@@ -446,10 +508,16 @@ class _BookingsScreenState extends State<BookingsScreen> {
                       decoration:
                           const InputDecoration(labelText: 'Number plate'),
                       textCapitalization: TextCapitalization.characters,
+                      onChanged: (_) =>
+                          unawaited(refreshPlateLoyalty(setSheetState)),
                       validator: (v) => (v == null || v.trim().isEmpty)
                           ? 'Enter the number plate'
                           : null,
                     ),
+                    if (plateLoyaltyStatus != null) ...[
+                      const SizedBox(height: 8),
+                      _PlateLoyaltyNotice(status: plateLoyaltyStatus!),
+                    ],
                     const SizedBox(height: 12),
                     if (services.isEmpty)
                       TextFormField(
