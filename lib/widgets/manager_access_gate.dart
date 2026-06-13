@@ -12,6 +12,11 @@ class RequireManagerAccess extends StatelessWidget {
     return ValueListenableBuilder<ManagerAccount?>(
       valueListenable: ManagerAuth.instance.listenable,
       builder: (context, account, _) {
+        if (!ManagerAuth.instance.isBootstrapped) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
         if (account == null) {
           return const _RouteRedirect(route: '/onboarding');
         }

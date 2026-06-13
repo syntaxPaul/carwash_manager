@@ -33,11 +33,12 @@ import 'widgets/manager_access_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const App());
-
   await AppSettings.instance.load();
   await SupabaseBackend.instance.bootstrap();
   await ManagerAuth.instance.bootstrap();
+
+  runApp(const App());
+
   BillingService.instance.start();
   unawaited(CloudBackupService.instance.bootstrap());
   unawaited(CustomerAuth.instance.bootstrap());
@@ -52,7 +53,7 @@ class App extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'WashDesk',
       theme: buildTheme(),
-      initialRoute: '/onboarding',
+      initialRoute: managerInitialRoute(signedInRoute: '/role'),
       routes: {
         '/onboarding': (_) => const OnboardingScreen(),
         '/sign-up': (_) => const SignUpScreen(nextRoute: '/role'),

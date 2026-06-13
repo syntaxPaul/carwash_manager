@@ -56,11 +56,12 @@ Future<void> main() async {
         return false;
       };
 
-      runApp(const ManagerApp());
-
       await AppSettings.instance.load();
       await SupabaseBackend.instance.bootstrap();
       await ManagerAuth.instance.bootstrap();
+
+      runApp(const ManagerApp());
+
       BillingService.instance.start();
       unawaited(CloudBackupService.instance.bootstrap());
       unawaited(BookkeepingService.instance.bootstrap());
@@ -87,7 +88,7 @@ class ManagerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'WashDesk',
       theme: buildTheme(),
-      initialRoute: '/onboarding',
+      initialRoute: managerInitialRoute(),
       routes: {
         '/onboarding': (_) => const OnboardingScreen(),
         '/sign-up': (_) => const SignUpScreen(nextRoute: '/'),
