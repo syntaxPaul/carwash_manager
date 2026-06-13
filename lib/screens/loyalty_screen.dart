@@ -31,19 +31,19 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
   }
 
   Future<void> _redeem(Map<String, Object?> row) async {
-    final customerId = row['customer_id'] as String;
+    final plateKey = row['plate_key'] as String;
+    final displayPlate = row['display_plate'] as String? ?? plateKey;
     final carwashId = row['carwash_id'] as String;
     try {
-      await LoyaltyService.instance.redeemFreeWash(
-        customerId: customerId,
+      await LoyaltyService.instance.redeemFreeWashForPlate(
+        plateKey: plateKey,
+        displayPlate: displayPlate,
         carwashId: carwashId,
         notes: 'Manager redeem',
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text('Marked free wash redeemed for ${row['customer_name']}')),
+        SnackBar(content: Text('Marked free wash redeemed for $displayPlate')),
       );
       await _load();
     } catch (e) {
@@ -73,7 +73,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                   child: Padding(
                     padding: EdgeInsets.all(32),
                     child: Text(
-                        'No loyalty punches recorded yet. Complete a booking linked to a customer to start.'),
+                        'No loyalty punches recorded yet. Complete bookings with number plates to start.'),
                   ),
                 )
               : RefreshIndicator(
@@ -94,12 +94,12 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
                           leading: CircleAvatar(child: Text('${index + 1}')),
-                          title: Text(row['customer_name'] as String? ??
-                              'Unknown customer'),
+                          title: Text(row['display_plate'] as String? ??
+                              row['plate_key'] as String? ??
+                              'Unknown plate'),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(row['customer_phone'] as String? ?? ''),
                               Text('Carwash: ${row['carwash_name'] ?? 'N/A'}'),
                               Text(
                                   'Punches: $punches • Free washes unlocked: ${punches ~/ 5} • Redeemed: $redemptions'),

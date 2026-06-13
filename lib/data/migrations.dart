@@ -489,4 +489,16 @@ const List<String> migrations = [
   CREATE INDEX IF NOT EXISTS idx_subscription_events_account
     ON subscription_events(account_id, event_ts DESC);
   ''',
+  // v38 - track loyalty by vehicle number plate
+  '''
+  ALTER TABLE loyalty_punches ADD COLUMN plate_key TEXT;
+  ALTER TABLE loyalty_punches ADD COLUMN display_plate TEXT;
+  CREATE INDEX IF NOT EXISTS idx_loyalty_plate
+    ON loyalty_punches(plate_key, carwash_id);
+
+  ALTER TABLE loyalty_redemptions ADD COLUMN plate_key TEXT;
+  ALTER TABLE loyalty_redemptions ADD COLUMN display_plate TEXT;
+  CREATE INDEX IF NOT EXISTS idx_loyalty_redemptions_plate
+    ON loyalty_redemptions(plate_key, carwash_id);
+  ''',
 ];
