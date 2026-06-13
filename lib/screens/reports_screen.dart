@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import '../data/db.dart';
@@ -15,6 +16,77 @@ class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
+}
+
+class _RangeBounds {
+  final int startTs;
+  final int endTs;
+
+  const _RangeBounds(this.startTs, this.endTs);
+}
+
+class _BookkeepingPack {
+  final AppSettings settings;
+  final DateTimeRange? range;
+  final DateTime generatedAt;
+  final List<Map<String, Object?>> washes;
+  final List<Map<String, Object?>> expenses;
+  final List<Map<String, Object?>> paymentMethods;
+  final List<Map<String, Object?>> expenseCategories;
+
+  const _BookkeepingPack({
+    required this.settings,
+    required this.range,
+    required this.generatedAt,
+    required this.washes,
+    required this.expenses,
+    required this.paymentMethods,
+    required this.expenseCategories,
+  });
+
+  String get periodLabel {
+    if (range == null) return 'All time';
+    return '${ymd(range!.start)} to ${ymd(range!.end)}';
+  }
+
+  double get income => washes.fold(
+        0,
+        (sum, row) => sum + _asDouble(row['price']),
+      );
+
+  double get expensesTotal => expenses.fold(
+        0,
+        (sum, row) => sum + _asDouble(row['amount']),
+      );
+
+  double get incomeExVat {
+    if (!settings.pricesIncludeVat) return income;
+    return income / (1 + settings.taxRate);
+  }
+
+  double get vatOutput {
+    if (settings.pricesIncludeVat) return income - incomeExVat;
+    return income * settings.taxRate;
+  }
+
+  double get expenseExVat {
+    if (!settings.pricesIncludeVat) return expensesTotal;
+    return expensesTotal / (1 + settings.taxRate);
+  }
+
+  double get vatInput {
+    if (settings.pricesIncludeVat) return expensesTotal - expenseExVat;
+    return expensesTotal * settings.taxRate;
+  }
+
+  double get netVat => vatOutput - vatInput;
+
+  double get profit => income - expensesTotal;
+
+  static double _asDouble(Object? value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
 }
 
 class _ReportsScreenState extends State<ReportsScreen> {
@@ -80,39 +152,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _exportCsv() async {
     if (_exportingCsv) return;
     setState(() => _exportingCsv = true);
-    final d = await AppDb.instance.db;
     try {
-      List<Map<String, Object?>> washes;
-      if (range == null) {
-        washes = await d.query('washes', orderBy: 'ts ASC');
-      } else {
-        final start =
-            DateTime(range!.start.year, range!.start.month, range!.start.day)
-                .millisecondsSinceEpoch;
-        final end = DateTime(
-                range!.end.year, range!.end.month, range!.end.day, 23, 59, 59)
-            .millisecondsSinceEpoch;
-        washes = await d.query('washes',
-            where: 'ts BETWEEN ? AND ?',
-            whereArgs: [start, end],
-            orderBy: 'ts ASC');
-      }
-      final rows = <List<dynamic>>[
-        ['Date', 'Service', 'Price', 'Payment', 'Employee', 'Notes'],
-        ...washes.map((w) => [
-              ymd(DateTime.fromMillisecondsSinceEpoch(w['ts'] as int)),
-              w['service_name'],
-              w['price'],
-              w['payment_method'],
-              w['employee_name'] ?? '',
-              w['notes'] ?? '',
-            ]),
-      ];
-
-      final csv = const ListToCsvConverter().convert(rows);
+      final pack = await _loadBookkeepingPack();
       final file = await _writeExportFile(
+        basename: 'washdesk_bookkeeping_pack',
         extension: 'csv',
-        bytes: utf8.encode(csv),
+        bytes: utf8.encode(_buildBookkeepingCsv(pack)),
       );
 
       await Share.shareXFiles(
@@ -123,8 +168,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
             name: file.uri.pathSegments.last,
           ),
         ],
-        subject: 'WashDesk CSV report',
-        text: 'Choose where to save or share this WashDesk CSV report.',
+        subject: 'WashDesk bookkeeping CSV pack',
+        text: 'Choose where to save or share this WashDesk bookkeeping CSV.',
         sharePositionOrigin: _shareOrigin,
       );
     } catch (_) {
@@ -140,41 +185,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _exportPdf() async {
     if (_exportingPdf) return;
     setState(() => _exportingPdf = true);
-    final s = AppSettings.instance;
     try {
-      final incomeExVat =
-          s.pricesIncludeVat ? income / (1 + s.taxRate) : income;
-      final vatPortion =
-          s.pricesIncludeVat ? (income - incomeExVat) : (income * s.taxRate);
-      final pdf = pw.Document();
-      pdf.addPage(
-        pw.Page(
-          build: (ctx) => pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(s.businessName,
-                  style: pw.TextStyle(
-                      fontSize: 20, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 8),
-              if (s.vatReg.isNotEmpty) pw.Text('VAT Reg: ${s.vatReg}'),
-              pw.SizedBox(height: 8),
-              if (range == null)
-                pw.Text('Period: All time')
-              else
-                pw.Text('Period: ${ymd(range!.start)} to ${ymd(range!.end)}'),
-              pw.SizedBox(height: 16),
-              pw.Text('Income: ${money(income)}'),
-              pw.Text(
-                  'Tax (${(s.taxRate * 100).toStringAsFixed(2)}%): ${money(vatPortion)}'),
-              pw.Text('Income (ex VAT): ${money(incomeExVat)}'),
-              pw.Text('Expenses: ${money(expenses)}'),
-              pw.Text('Profit: ${money(income - expenses)}'),
-            ],
-          ),
-        ),
-      );
+      final pack = await _loadBookkeepingPack();
+      final pdf = _buildBookkeepingPdf(pack);
 
       final file = await _writeExportFile(
+        basename: 'washdesk_bookkeeping_pack',
         extension: 'pdf',
         bytes: await pdf.save(),
       );
@@ -187,8 +203,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
             name: file.uri.pathSegments.last,
           ),
         ],
-        subject: 'WashDesk PDF report',
-        text: 'Choose where to save or share this WashDesk PDF report.',
+        subject: 'WashDesk bookkeeping PDF pack',
+        text: 'Choose where to save or share this WashDesk bookkeeping PDF.',
         sharePositionOrigin: _shareOrigin,
       );
     } catch (_) {
@@ -202,13 +218,383 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<File> _writeExportFile({
+    String basename = 'washdesk_report',
     required String extension,
     required List<int> bytes,
   }) async {
     final dir = await getTemporaryDirectory();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final file = File('${dir.path}/washdesk_report_$timestamp.$extension');
+    final file = File('${dir.path}/${basename}_$timestamp.$extension');
     return file.writeAsBytes(bytes, flush: true);
+  }
+
+  Future<_BookkeepingPack> _loadBookkeepingPack() async {
+    final d = await AppDb.instance.db;
+    final bounds = _selectedRangeBounds();
+    final where = bounds == null ? null : 'ts BETWEEN ? AND ?';
+    final whereArgs = bounds == null ? null : [bounds.startTs, bounds.endTs];
+
+    final washes = await d.query(
+      'washes',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'ts ASC',
+    );
+    final expenseRows = await d.query(
+      'expenses',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'ts ASC',
+    );
+    final paymentMethods = bounds == null
+        ? await d.rawQuery(
+            'SELECT payment_method, COUNT(*) c, SUM(price) s FROM washes GROUP BY payment_method ORDER BY payment_method')
+        : await d.rawQuery(
+            'SELECT payment_method, COUNT(*) c, SUM(price) s FROM washes WHERE ts BETWEEN ? AND ? GROUP BY payment_method ORDER BY payment_method',
+            [bounds.startTs, bounds.endTs],
+          );
+    final expenseCategories = bounds == null
+        ? await d.rawQuery(
+            'SELECT category, COUNT(*) c, SUM(amount) s FROM expenses GROUP BY category ORDER BY category')
+        : await d.rawQuery(
+            'SELECT category, COUNT(*) c, SUM(amount) s FROM expenses WHERE ts BETWEEN ? AND ? GROUP BY category ORDER BY category',
+            [bounds.startTs, bounds.endTs],
+          );
+
+    return _BookkeepingPack(
+      settings: AppSettings.instance,
+      range: range,
+      generatedAt: DateTime.now(),
+      washes: washes,
+      expenses: expenseRows,
+      paymentMethods: paymentMethods,
+      expenseCategories: expenseCategories,
+    );
+  }
+
+  _RangeBounds? _selectedRangeBounds() {
+    if (range == null) return null;
+    final start =
+        DateTime(range!.start.year, range!.start.month, range!.start.day)
+            .millisecondsSinceEpoch;
+    final end =
+        DateTime(range!.end.year, range!.end.month, range!.end.day, 23, 59, 59)
+            .millisecondsSinceEpoch;
+    return _RangeBounds(start, end);
+  }
+
+  String _buildBookkeepingCsv(_BookkeepingPack pack) {
+    final rows = <List<dynamic>>[
+      ['WashDesk bookkeeping pack'],
+      ['Business', pack.settings.businessName],
+      ['VAT registration', pack.settings.vatReg],
+      ['Period', pack.periodLabel],
+      ['Generated', ymd(pack.generatedAt)],
+      [],
+      ['Summary'],
+      ['Income', pack.income],
+      ['Income ex VAT', pack.incomeExVat],
+      ['VAT output estimate', pack.vatOutput],
+      ['Expenses', pack.expensesTotal],
+      ['VAT input estimate', pack.vatInput],
+      ['Net VAT estimate', pack.netVat],
+      ['Profit before tax', pack.profit],
+      [],
+      ['Income by payment method'],
+      ['Payment method', 'Count', 'Total'],
+      ...pack.paymentMethods.map((m) => [
+            m['payment_method'] ?? 'unknown',
+            m['c'] ?? 0,
+            _num(m['s']),
+          ]),
+      [],
+      ['Expenses by category'],
+      ['Category', 'Count', 'Total'],
+      ...pack.expenseCategories.map((e) => [
+            e['category'] ?? 'Uncategorised',
+            e['c'] ?? 0,
+            _num(e['s']),
+          ]),
+      [],
+      ['Income transactions'],
+      [
+        'Date',
+        'Service',
+        'Vehicle',
+        'Number plate',
+        'Price',
+        'Payment',
+        'Employee',
+        'Notes'
+      ],
+      ...pack.washes.map((w) => [
+            _dateFromTs(w['ts']),
+            w['service_name'] ?? '',
+            w['vehicle'] ?? '',
+            w['license_plate'] ?? '',
+            _num(w['price']),
+            w['payment_method'] ?? '',
+            w['employee_name'] ?? '',
+            w['notes'] ?? '',
+          ]),
+      [],
+      ['Expense transactions'],
+      [
+        'Date',
+        'Category',
+        'Supplier/vendor',
+        'Amount',
+        'Payment',
+        'Status',
+        'Due date',
+        'Notes'
+      ],
+      ...pack.expenses.map((e) => [
+            _dateFromTs(e['ts']),
+            e['category'] ?? '',
+            e['vendor_name'] ?? '',
+            _num(e['amount']),
+            e['payment_method'] ?? '',
+            e['payment_status'] ?? '',
+            _dateFromTs(e['due_ts']),
+            e['notes'] ?? '',
+          ]),
+    ];
+    return const ListToCsvConverter().convert(rows);
+  }
+
+  pw.Document _buildBookkeepingPdf(_BookkeepingPack pack) {
+    final pdf = pw.Document();
+    final titleStyle =
+        pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold);
+    final sectionStyle =
+        pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold);
+    const smallStyle = pw.TextStyle(fontSize: 8);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(28),
+        footer: (context) => pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text('WashDesk bookkeeping pack', style: smallStyle),
+            pw.Text('Page ${context.pageNumber} of ${context.pagesCount}',
+                style: smallStyle),
+          ],
+        ),
+        build: (context) => [
+          pw.Text(pack.settings.businessName, style: titleStyle),
+          pw.SizedBox(height: 4),
+          pw.Text('Bookkeeping pack',
+              style: const pw.TextStyle(
+                  fontSize: 16, color: PdfColors.blueGrey700)),
+          pw.SizedBox(height: 10),
+          _pdfInfoTable([
+            ['Period', pack.periodLabel],
+            ['Generated', ymd(pack.generatedAt)],
+            [
+              'VAT registration',
+              pack.settings.vatReg.isEmpty ? '-' : pack.settings.vatReg
+            ],
+            [
+              'VAT setting',
+              pack.settings.pricesIncludeVat
+                  ? 'Prices include VAT'
+                  : 'VAT calculated on top of income'
+            ],
+            [
+              'VAT rate',
+              '${(pack.settings.taxRate * 100).toStringAsFixed(2)}%'
+            ],
+          ]),
+          pw.SizedBox(height: 14),
+          pw.Text('Financial summary', style: sectionStyle),
+          pw.SizedBox(height: 6),
+          _pdfTable(
+            headers: ['Metric', 'Amount'],
+            rows: [
+              ['Income', money(pack.income)],
+              ['Income excluding VAT', money(pack.incomeExVat)],
+              ['VAT output estimate', money(pack.vatOutput)],
+              ['Expenses', money(pack.expensesTotal)],
+              ['VAT input estimate', money(pack.vatInput)],
+              ['Net VAT estimate', money(pack.netVat)],
+              ['Profit before tax', money(pack.profit)],
+            ],
+          ),
+          pw.SizedBox(height: 12),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('Income by payment method', style: sectionStyle),
+                    pw.SizedBox(height: 6),
+                    _pdfTable(
+                      headers: ['Payment method', 'Count', 'Total'],
+                      rows: pack.paymentMethods
+                          .map((m) => [
+                                '${m['payment_method'] ?? 'unknown'}',
+                                '${m['c'] ?? 0}',
+                                money(_num(m['s'])),
+                              ])
+                          .toList(),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(width: 16),
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('Expenses by category', style: sectionStyle),
+                    pw.SizedBox(height: 6),
+                    _pdfTable(
+                      headers: ['Category', 'Count', 'Total'],
+                      rows: pack.expenseCategories
+                          .map((e) => [
+                                '${e['category'] ?? 'Uncategorised'}',
+                                '${e['c'] ?? 0}',
+                                money(_num(e['s'])),
+                              ])
+                          .toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 16),
+          pw.Text('Income transactions', style: sectionStyle),
+          pw.SizedBox(height: 6),
+          _pdfTable(
+            headers: [
+              'Date',
+              'Service',
+              'Vehicle',
+              'Plate',
+              'Price',
+              'Payment',
+              'Employee'
+            ],
+            rows: pack.washes
+                .map((w) => [
+                      _dateFromTs(w['ts']),
+                      '${w['service_name'] ?? ''}',
+                      '${w['vehicle'] ?? ''}',
+                      '${w['license_plate'] ?? ''}',
+                      money(_num(w['price'])),
+                      '${w['payment_method'] ?? ''}',
+                      '${w['employee_name'] ?? ''}',
+                    ])
+                .toList(),
+          ),
+          pw.SizedBox(height: 16),
+          pw.Text('Expense transactions', style: sectionStyle),
+          pw.SizedBox(height: 6),
+          _pdfTable(
+            headers: [
+              'Date',
+              'Category',
+              'Supplier',
+              'Amount',
+              'Payment',
+              'Status',
+              'Notes'
+            ],
+            rows: pack.expenses
+                .map((e) => [
+                      _dateFromTs(e['ts']),
+                      '${e['category'] ?? ''}',
+                      '${e['vendor_name'] ?? ''}',
+                      money(_num(e['amount'])),
+                      '${e['payment_method'] ?? ''}',
+                      '${e['payment_status'] ?? ''}',
+                      '${e['notes'] ?? ''}',
+                    ])
+                .toList(),
+          ),
+          pw.SizedBox(height: 16),
+          pw.Text('Accountant notes', style: sectionStyle),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            'This pack is generated from records captured in WashDesk. It is intended for bookkeeping review and tax preparation support. Verify source records, bank deposits, receipts, invoices, VAT treatment and SARS filing requirements before submission.',
+            style: const pw.TextStyle(fontSize: 9),
+          ),
+        ],
+      ),
+    );
+    return pdf;
+  }
+
+  pw.Widget _pdfInfoTable(List<List<String>> rows) {
+    return pw.Table(
+      border: pw.TableBorder.all(color: PdfColors.blueGrey100),
+      columnWidths: const {
+        0: pw.FixedColumnWidth(120),
+        1: pw.FlexColumnWidth(),
+      },
+      children: rows
+          .map(
+            (row) => pw.TableRow(
+              children: [
+                _pdfCell(row[0], bold: true),
+                _pdfCell(row[1]),
+              ],
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  pw.Widget _pdfTable({
+    required List<String> headers,
+    required List<List<String>> rows,
+  }) {
+    final dataRows = rows.isEmpty
+        ? [
+            List<String>.generate(
+                headers.length, (index) => index == 0 ? 'No records' : '')
+          ]
+        : rows;
+    return pw.TableHelper.fromTextArray(
+      headers: headers,
+      data: dataRows,
+      headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+      cellStyle: const pw.TextStyle(fontSize: 7),
+      headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey100),
+      border: pw.TableBorder.all(color: PdfColors.blueGrey100, width: 0.5),
+      cellAlignment: pw.Alignment.centerLeft,
+      headerAlignment: pw.Alignment.centerLeft,
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+    );
+  }
+
+  pw.Widget _pdfCell(String text, {bool bold = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          fontSize: 9,
+          fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
+  double _num(Object? value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  String _dateFromTs(Object? value) {
+    if (value is! int) return '';
+    return ymd(DateTime.fromMillisecondsSinceEpoch(value));
   }
 
   Rect get _shareOrigin {
