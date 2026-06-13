@@ -32,7 +32,7 @@ ThemeData buildTheme() {
     appBarTheme: AppBarTheme(
       centerTitle: true,
       elevation: 0,
-      toolbarHeight: 76,
+      toolbarHeight: 96,
       backgroundColor: const Color(0xFFF6FAFE),
       foregroundColor: colorScheme.onSurface,
       surfaceTintColor: Colors.transparent,
