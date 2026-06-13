@@ -72,9 +72,10 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _add,
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.person_add_alt_1_rounded),
+        label: const Text('Add team member'),
       ),
     );
   }
@@ -94,7 +95,7 @@ class _EmployeeDialogState extends State<_EmployeeDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Add Employee'),
+      title: const Text('Add team member'),
       content: Form(
         key: _form,
         child: SizedBox(

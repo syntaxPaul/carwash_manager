@@ -75,9 +75,10 @@ class _ServicesScreenState extends State<ServicesScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _add,
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add_business_rounded),
+        label: const Text('Add service'),
       ),
       bottomNavigationBar: const BottomNav(currentIndex: 3),
     );

@@ -115,9 +115,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _addExpense,
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.receipt_long_rounded),
+        label: const Text('Add expense'),
       ),
       bottomNavigationBar: const BottomNav(currentIndex: 2),
     );
