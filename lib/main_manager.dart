@@ -10,6 +10,7 @@ import 'screens/reports_screen.dart';
 import 'screens/wash_history_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/bookings_screen.dart';
+import 'screens/loyalty_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/legal_screen.dart';
 import 'screens/subscription_screen.dart';
@@ -110,6 +111,7 @@ class ManagerApp extends StatelessWidget {
             const RequireManagerAccess(child: WashHistoryScreen()),
         '/bookkeeping': (_) =>
             const RequireManagerAccess(child: BookkeepingScreen()),
+        '/loyalty': (_) => const RequireManagerAccess(child: LoyaltyScreen()),
         '/settings': (_) => const RequireManagerAccess(child: SettingsScreen()),
       },
     );
