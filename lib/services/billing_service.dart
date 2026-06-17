@@ -139,10 +139,11 @@ class BillingService extends ChangeNotifier {
       return;
     }
 
-    _monthlyProduct = response.productDetails.firstWhere(
-      (product) => product.id == managerMonthlyProductId,
-      orElse: () => response.productDetails.first,
-    );
+    final products = response.productDetails.cast<ProductDetails>();
+    final matchingProducts =
+        products.where((product) => product.id == managerMonthlyProductId);
+    _monthlyProduct =
+        matchingProducts.isNotEmpty ? matchingProducts.first : products.first;
     notifyListeners();
   }
 
