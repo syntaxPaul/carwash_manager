@@ -59,6 +59,12 @@ android {
         }
     }
 
+    packaging {
+        jniLibs {
+            keepDebugSymbols += listOf("**/*.so")
+        }
+    }
+
     // Build two installable apps: manager and customer
     flavorDimensions += listOf("app")
     productFlavors {
