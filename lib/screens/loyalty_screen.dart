@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/settings.dart';
 import '../services/loyalty_service.dart';
 import '../widgets/bottom_nav.dart';
+import '../widgets/wd_kit.dart';
 
 class LoyaltyScreen extends StatefulWidget {
   const LoyaltyScreen({super.key});
@@ -70,12 +71,11 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _rows.isEmpty
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Text(
-                        'No loyalty punches recorded yet. Complete bookings with number plates to start.'),
-                  ),
+              ? const WdEmptyState(
+                  icon: Icons.card_giftcard_rounded,
+                  title: 'No punch cards yet',
+                  message:
+                      'Record bookings with number plates and each wash earns the customer a punch toward a free wash.',
                 )
               : RefreshIndicator(
                   onRefresh: _load,

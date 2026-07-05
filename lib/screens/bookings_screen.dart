@@ -11,6 +11,7 @@ import '../utils/booking_code.dart';
 import '../utils/format.dart';
 import '../utils/vehicle_details.dart';
 import '../widgets/bottom_nav.dart';
+import '../widgets/wd_kit.dart';
 
 class BookingsScreen extends StatefulWidget {
   final bool openWalkInOnStart;
@@ -394,6 +395,38 @@ class _BookingsScreenState extends State<BookingsScreen> {
     String? employeeName;
     PlateLoyaltyStatus? plateLoyaltyStatus;
     int plateLookupVersion = 0;
+
+    // Speed up repeat entry: prefill payment method and employee from the
+    // most recent walk-in, and auto-select the service when there's only one.
+    try {
+      final last = await db.query(
+        'bookings',
+        columns: ['payment_method', 'employee_id', 'employee_name'],
+        where: "source = 'walk_in'",
+        orderBy: 'ts_created DESC',
+        limit: 1,
+      );
+      if (last.isNotEmpty) {
+        final lastMethod = last.first['payment_method'] as String?;
+        if (lastMethod == 'cash' || lastMethod == 'card') {
+          paymentMethod = lastMethod!;
+        }
+        final lastEmployeeId = last.first['employee_id'] as String?;
+        if (lastEmployeeId != null &&
+            employees.any((e) => e['id'] == lastEmployeeId)) {
+          employeeId = lastEmployeeId;
+          employeeName = employees
+              .firstWhere((e) => e['id'] == lastEmployeeId)['name'] as String?;
+        }
+      }
+    } catch (_) {
+      // Older databases may not have these columns yet; defaults are fine.
+    }
+    if (services.length == 1) {
+      serviceName = services.first['name'] as String?;
+      final price = (services.first['price'] as num?)?.toDouble();
+      if (price != null) priceCtrl.text = price.toStringAsFixed(2);
+    }
 
     Future<void> pickAppt() async {
       final date = await showDatePicker(
@@ -874,9 +907,16 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     child: filtered.isEmpty
                         ? ListView(
                             padding: const EdgeInsets.fromLTRB(16, 32, 16, 150),
-                            children: const [
-                              SizedBox(height: 90),
-                              Center(child: Text('No bookings for today.')),
+                            children: [
+                              const SizedBox(height: 40),
+                              WdEmptyState(
+                                icon: Icons.local_car_wash_rounded,
+                                title: 'No bookings here yet',
+                                message:
+                                    'Walk-ins and customer bookings for today will show up in this list.',
+                                actionLabel: 'Record a walk-in',
+                                onAction: _showWalkInForm,
+                              ),
                             ],
                           )
                         : ListView.builder(

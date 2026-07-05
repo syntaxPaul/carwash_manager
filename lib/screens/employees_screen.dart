@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../data/db.dart';
 import '../utils/format.dart';
 import '../widgets/app_background.dart';
+import '../widgets/wd_kit.dart';
 
 enum _EmployeeStatsMode { today, singleDay, range }
 
@@ -244,14 +245,11 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
               ),
               const SizedBox(height: 10),
               if (items.isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Text(
-                      'Add team members to track how many cars each person washes.',
-                      style: TextStyle(color: colorScheme.onSurfaceVariant),
-                    ),
-                  ),
+                const WdEmptyState(
+                  icon: Icons.people_alt_rounded,
+                  title: 'No team members yet',
+                  message:
+                      'Add your team to track how many cars each person washes and who handled each booking.',
                 )
               else
                 ...items.map((m) {
