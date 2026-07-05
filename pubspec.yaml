@@ -1,7 +1,7 @@
 name: carwash_manager
 description: Offline-first car wash management app (sales, expenses, employees, services, reports)
 publish_to: 'none'
-version: 1.0.6+1
+version: 1.0.0+8
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
