@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/settings.dart';
 import '../services/manager_auth.dart';
+import '../utils/store_names.dart';
 import '../widgets/app_background.dart';
 
 const String appLogoAsset = 'assets/branding/app_logo.png';
@@ -46,7 +47,7 @@ class OnboardingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Activate the App Store subscription after signup. New eligible accounts get a 1-week free trial, then $subscriptionPrice/month.',
+                          'Activate your $storeName subscription after signup. New eligible accounts get a 1-week free trial, then $subscriptionPrice/month.',
                           textAlign: TextAlign.center,
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -151,7 +152,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return _AuthScaffold(
       title: 'Create your account',
       subtitle:
-          'Create your WashDesk account, then activate the App Store subscription. Eligible new accounts get a 1-week free trial before billing starts.',
+          'Create your WashDesk account, then activate your $storeName subscription. Eligible new accounts get a 1-week free trial before billing starts.',
       footer: TextButton(
         onPressed: () => Navigator.pushReplacementNamed(context, '/sign-in'),
         child: const Text('Already have an account? Sign in'),

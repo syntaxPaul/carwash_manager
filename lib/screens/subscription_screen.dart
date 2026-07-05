@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/store_names.dart';
 import '../services/billing_service.dart';
 import '../services/manager_auth.dart';
 import '../widgets/app_background.dart';
@@ -75,7 +76,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   ? 'Use your WashDesk account to manage subscription access.'
                   : account.hasAccess
                       ? 'Your WashDesk subscription is active.'
-                      : 'Start the App Store subscription to unlock WashDesk. Eligible new accounts receive a 1-week free trial, then Apple bills the monthly price automatically unless cancelled.';
+                      : 'Start your $storeName subscription to unlock WashDesk. Eligible new accounts receive a 1-week free trial, then $storeVendor bills the monthly price automatically unless cancelled.';
 
               return ListView(
                 padding: const EdgeInsets.fromLTRB(20, 28, 20, 36),
@@ -209,7 +210,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             const SizedBox(height: 8),
                             Text(
                               'Subscriptions renew automatically every month '
-                              'until cancelled in your Apple account settings.',
+                              'until cancelled in $storeAccountSettingsHint.',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall
@@ -336,9 +337,9 @@ class _RequiredSubscriptionSummary extends StatelessWidget {
             label: 'Length of subscription',
             value: washDeskSubscriptionPeriod,
           ),
-          const _SummaryLine(
+          _SummaryLine(
             label: 'Free trial',
-            value: '1 week for eligible new subscribers, managed by Apple.',
+            value: '1 week for eligible new subscribers, managed by $storeVendor.',
           ),
           const _SummaryLine(
             label: 'Renewal',
@@ -459,10 +460,10 @@ class _PlanCard extends StatelessWidget {
             label: 'Included service',
             value: includes,
           ),
-          const _PlanInfoRow(
+          _PlanInfoRow(
             label: 'Trial',
             value:
-                '1-week free trial for eligible new subscribers. Apple bills automatically after the trial unless cancelled.',
+                '1-week free trial for eligible new subscribers. $storeVendor bills automatically after the trial unless cancelled.',
           ),
           if (isActive) ...[
             const SizedBox(height: 8),

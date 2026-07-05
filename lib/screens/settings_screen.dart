@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../utils/store_names.dart';
 import '../data/settings.dart';
 import '../services/manager_auth.dart';
 
@@ -171,15 +172,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Delete WashDesk account?'),
-          content: const Text(
+          content: Text(
             'This permanently deletes this manager account and the WashDesk '
             'business data stored on this device, including bookings, washes, '
             'customers, employees, services, expenses, reports and backups '
             'state. If cloud backup is configured, the cloud account and '
             'backup files are deleted too. This cannot be undone.\n\n'
-            'Your App Store subscription is managed by Apple and must be '
-            'cancelled from your Apple account if you no longer want it to '
-            'renew.',
+            'Your $storeName subscription is managed by $storeVendor and must be '
+            'cancelled from $storeAccountSettingsHint if you no longer want '
+            'it to renew.',
           ),
           actions: [
             TextButton(

@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
+import '../utils/store_names.dart';
+
 import 'manager_auth.dart';
 
 class BillingService extends ChangeNotifier {
@@ -79,7 +81,7 @@ class BillingService extends ChangeNotifier {
       _loadingStartedAt = null;
       _monthlyProduct = null;
       _message =
-          'The App Store is taking too long to respond. Check your connection and try again.';
+          'The $storeName is taking too long to respond. Check your connection and try again.';
       notifyListeners();
       return;
     } catch (error) {
@@ -87,7 +89,7 @@ class BillingService extends ChangeNotifier {
       _loading = false;
       _loadingStartedAt = null;
       _monthlyProduct = null;
-      _message = 'The App Store could not be reached: $error';
+      _message = 'The $storeName could not be reached: $error';
       notifyListeners();
       return;
     }
@@ -110,7 +112,7 @@ class BillingService extends ChangeNotifier {
       _loadingStartedAt = null;
       _monthlyProduct = null;
       _message =
-          'The App Store is taking too long to load the monthly plan. Try again.';
+          'The $storeName is taking too long to load the monthly plan. Try again.';
       notifyListeners();
       return;
     } catch (error) {
@@ -118,7 +120,7 @@ class BillingService extends ChangeNotifier {
       _loadingStartedAt = null;
       _monthlyProduct = null;
       _message =
-          'The monthly plan could not be loaded from the App Store: $error';
+          'The monthly plan could not be loaded from the $storeName: $error';
       notifyListeners();
       return;
     }
@@ -134,7 +136,7 @@ class BillingService extends ChangeNotifier {
         response.productDetails.isEmpty) {
       _monthlyProduct = null;
       _message =
-          'The monthly plan is not available from the App Store yet. Try again later.';
+          'The monthly plan is not available from the $storeName yet. Try again later.';
       notifyListeners();
       return;
     }
@@ -183,12 +185,12 @@ class BillingService extends ChangeNotifier {
           .timeout(_storeTimeout);
     } on TimeoutException {
       _purchasePending = false;
-      _message = 'The App Store is taking too long to start the purchase.';
+      _message = 'The $storeName is taking too long to start the purchase.';
       notifyListeners();
       return;
     } catch (error) {
       _purchasePending = false;
-      _message = 'The App Store could not start the purchase: $error';
+      _message = 'The $storeName could not start the purchase: $error';
       notifyListeners();
       return;
     }
@@ -198,7 +200,7 @@ class BillingService extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    _message = 'Confirm the subscription in the App Store sheet.';
+    _message = 'Confirm the subscription in the $storeName sheet.';
     _startPurchaseWatchdog();
     notifyListeners();
   }
@@ -236,7 +238,7 @@ class BillingService extends ChangeNotifier {
     } catch (error) {
       _purchasePending = false;
       _purchaseWatchdog?.cancel();
-      _message = 'The App Store could not start the purchase: $error';
+      _message = 'The $storeName could not start the purchase: $error';
       notifyListeners();
       return;
     }
@@ -300,7 +302,7 @@ class BillingService extends ChangeNotifier {
     } on TimeoutException {
       _purchasePending = false;
       _purchaseWatchdog?.cancel();
-      _message = 'The App Store is taking too long to restore purchases.';
+      _message = 'The $storeName is taking too long to restore purchases.';
       notifyListeners();
     } catch (error) {
       _purchasePending = false;
@@ -388,7 +390,7 @@ class BillingService extends ChangeNotifier {
       if (!_purchasePending) return;
       _purchasePending = false;
       _message =
-          'The App Store did not finish the subscription request. Try again or use Restore purchase.';
+          'The $storeName did not finish the subscription request. Try again or use Restore purchase.';
       notifyListeners();
     });
   }
