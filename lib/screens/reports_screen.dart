@@ -10,6 +10,7 @@ import '../data/db.dart';
 import '../utils/format.dart';
 import '../widgets/bottom_nav.dart';
 import '../data/settings.dart';
+import '../utils/vat_math.dart';
 import '../widgets/app_background.dart';
 
 class ReportsScreen extends StatefulWidget {
@@ -59,25 +60,27 @@ class _BookkeepingPack {
         (sum, row) => sum + _asDouble(row['amount']),
       );
 
-  double get incomeExVat {
-    if (!settings.pricesIncludeVat) return income;
-    return income / (1 + settings.taxRate);
-  }
+  // VAT is summed per transaction (matching the ledger's per-invoice
+  // rounding), never derived from aggregate totals — see VatMath docs.
+  VatSplit get _incomeSplit => VatMath.sumSplits(
+        washes.map((row) => _asDouble(row['price'])),
+        rate: settings.taxRate,
+        pricesIncludeVat: settings.pricesIncludeVat,
+      );
 
-  double get vatOutput {
-    if (settings.pricesIncludeVat) return income - incomeExVat;
-    return income * settings.taxRate;
-  }
+  VatSplit get _expenseSplit => VatMath.sumSplits(
+        expenses.map((row) => _asDouble(row['amount'])),
+        rate: settings.taxRate,
+        pricesIncludeVat: settings.pricesIncludeVat,
+      );
 
-  double get expenseExVat {
-    if (!settings.pricesIncludeVat) return expensesTotal;
-    return expensesTotal / (1 + settings.taxRate);
-  }
+  double get incomeExVat => _incomeSplit.net;
 
-  double get vatInput {
-    if (settings.pricesIncludeVat) return expensesTotal - expenseExVat;
-    return expensesTotal * settings.taxRate;
-  }
+  double get vatOutput => _incomeSplit.tax;
+
+  double get expenseExVat => _expenseSplit.net;
+
+  double get vatInput => _expenseSplit.tax;
 
   double get netVat => vatOutput - vatInput;
 
@@ -93,6 +96,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   DateTimeRange? range;
   double income = 0;
   double expenses = 0;
+  VatSplit incomeSplit = VatSplit.zero;
   List<Map<String, Object?>> methods = const [];
   bool _exportingCsv = false;
   bool _exportingPdf = false;
@@ -118,12 +122,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Future<void> _load() async {
     final d = await AppDb.instance.db;
-    List<Map<String, Object?>> inc, exp, byM;
+    List<Map<String, Object?>> inc, exp, byM, prices;
     if (range == null) {
       inc = await d.rawQuery('SELECT SUM(price) s FROM washes');
       exp = await d.rawQuery('SELECT SUM(amount) s FROM expenses');
       byM = await d.rawQuery(
           'SELECT payment_method, COUNT(*) c, SUM(price) s FROM washes GROUP BY payment_method');
+      prices = await d.rawQuery('SELECT price FROM washes');
     } else {
       final start =
           DateTime(range!.start.year, range!.start.month, range!.start.day)
@@ -140,11 +145,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
       byM = await d.rawQuery(
           'SELECT payment_method, COUNT(*) c, SUM(price) s FROM washes WHERE ts BETWEEN ? AND ? GROUP BY payment_method',
           [start, end]);
+      prices = await d.rawQuery(
+          'SELECT price FROM washes WHERE ts BETWEEN ? AND ?', [start, end]);
     }
+
+    final settings = AppSettings.instance;
+    final split = VatMath.sumSplits(
+      prices.map((row) => (row['price'] as num?)?.toDouble() ?? 0),
+      rate: settings.taxRate,
+      pricesIncludeVat: settings.pricesIncludeVat,
+    );
 
     setState(() {
       income = (inc.first['s'] as num?)?.toDouble() ?? 0;
       expenses = (exp.first['s'] as num?)?.toDouble() ?? 0;
+      incomeSplit = split;
       methods = byM;
     });
   }
@@ -609,9 +624,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final s = AppSettings.instance;
-    final incomeExVat = s.pricesIncludeVat ? income / (1 + s.taxRate) : income;
-    final vatPortion =
-        s.pricesIncludeVat ? (income - incomeExVat) : (income * s.taxRate);
+    // Per-transaction VAT from _load(); ties to the ledger's trial balance.
+    final incomeExVat = incomeSplit.net;
+    final vatPortion = incomeSplit.tax;
     return Scaffold(
       extendBody: true,
       appBar: AppBar(
