@@ -4,6 +4,7 @@ import '../data/db.dart';
 import '../utils/format.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/app_background.dart';
+import '../widgets/wd_kit.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -58,6 +59,16 @@ class _ServicesScreenState extends State<ServicesScreen> {
       body: Stack(
         children: [
           const AppBackground(),
+          if (items.isEmpty)
+            WdEmptyState(
+              icon: Icons.local_car_wash_rounded,
+              title: 'No services yet',
+              message:
+                  'Add the washes you offer — like Full Wash or Half Wash — with their prices, and they\'ll be one tap away when recording a booking.',
+              actionLabel: 'Add a service',
+              onAction: _add,
+            )
+          else
           ListView.separated(
             padding: const EdgeInsets.fromLTRB(18, 24, 18, 150),
             itemCount: items.length,

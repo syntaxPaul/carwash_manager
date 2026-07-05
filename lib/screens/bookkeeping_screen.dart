@@ -6,6 +6,7 @@ import '../services/bookkeeping_service.dart';
 import '../utils/format.dart';
 import '../widgets/app_background.dart';
 import '../widgets/bottom_nav.dart';
+import '../widgets/wd_kit.dart';
 
 class BookkeepingScreen extends StatefulWidget {
   const BookkeepingScreen({super.key});
@@ -806,39 +807,46 @@ class _BookkeepingScreenState extends State<BookkeepingScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(18, 24, 18, 150),
                 children: [
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
+                  GridView.count(
+                    padding: EdgeInsets.zero,
+                    primary: false,
+                    crossAxisCount: 2,
+                    childAspectRatio: 1.35,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
                     children: [
-                      _MetricCard(
-                        title: 'Cash on hand',
+                      WdStatCard(
+                        label: 'Cash on hand',
                         value: money(_snapshot['cash'] ?? 0),
-                        icon: Icons.payments,
+                        icon: Icons.payments_rounded,
                       ),
-                      _MetricCard(
-                        title: 'Bank',
+                      WdStatCard(
+                        label: 'Bank',
                         value: money(_snapshot['bank'] ?? 0),
-                        icon: Icons.account_balance,
+                        icon: Icons.account_balance_rounded,
                       ),
-                      _MetricCard(
-                        title: 'Accounts receivable',
+                      WdStatCard(
+                        label: 'Accounts receivable',
                         value: money(_snapshot['receivables'] ?? 0),
-                        icon: Icons.request_page_outlined,
+                        icon: Icons.request_page_rounded,
                       ),
-                      _MetricCard(
-                        title: 'Accounts payable',
+                      WdStatCard(
+                        label: 'Accounts payable',
                         value: money(_snapshot['payables'] ?? 0),
-                        icon: Icons.receipt_long_outlined,
+                        icon: Icons.receipt_long_rounded,
                       ),
-                      _MetricCard(
-                        title: 'VAT due',
+                      WdStatCard(
+                        label: 'VAT due',
                         value: money(_snapshot['vat_due'] ?? 0),
-                        icon: Icons.percent,
+                        icon: Icons.percent_rounded,
                       ),
-                      _MetricCard(
-                        title: 'YTD profit',
+                      WdStatCard(
+                        label: 'YTD profit',
                         value: money(_snapshot['ytd_profit'] ?? 0),
-                        icon: Icons.trending_up,
+                        icon: Icons.trending_up_rounded,
+                        emphasis: true,
                       ),
                     ],
                   ),
@@ -896,9 +904,7 @@ class _BookkeepingScreenState extends State<BookkeepingScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text('Monthly close snapshots',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
+                  const WdSectionHeader('Monthly close snapshots'),
                   if (_monthlyCloses.isEmpty)
                     const Card(
                       child: ListTile(
@@ -929,9 +935,7 @@ class _BookkeepingScreenState extends State<BookkeepingScreen> {
                           ),
                         )),
                   const SizedBox(height: 12),
-                  Text('Open invoices',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
+                  const WdSectionHeader('Open invoices'),
                   if (_openInvoices.isEmpty)
                     const Card(
                       child: ListTile(
@@ -976,9 +980,7 @@ class _BookkeepingScreenState extends State<BookkeepingScreen> {
                       );
                     }),
                   const SizedBox(height: 12),
-                  Text('Open vendor bills',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
+                  const WdSectionHeader('Open vendor bills'),
                   if (_openBills.isEmpty)
                     const Card(
                       child: ListTile(
@@ -1010,9 +1012,7 @@ class _BookkeepingScreenState extends State<BookkeepingScreen> {
                       );
                     }),
                   const SizedBox(height: 12),
-                  Text('Recent expenses',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
+                  const WdSectionHeader('Recent expenses'),
                   if (_recentExpenses.isEmpty)
                     const Card(
                       child: ListTile(
@@ -1059,9 +1059,7 @@ class _BookkeepingScreenState extends State<BookkeepingScreen> {
                       );
                     }),
                   const SizedBox(height: 12),
-                  Text('Recent journal entries',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
+                  const WdSectionHeader('Recent journal entries'),
                   if (_entries.isEmpty)
                     const Card(
                       child: ListTile(
@@ -1089,9 +1087,7 @@ class _BookkeepingScreenState extends State<BookkeepingScreen> {
                       );
                     }),
                   const SizedBox(height: 12),
-                  Text('Trial balance (top accounts)',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
+                  const WdSectionHeader('Trial balance (top accounts)'),
                   if (nonZeroTrial.isEmpty)
                     const Card(
                       child: ListTile(
@@ -1126,50 +1122,6 @@ class _BookkeepingScreenState extends State<BookkeepingScreen> {
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-
-  const _MetricCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 170,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 20),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _ExpenseDialog extends StatefulWidget {
   const _ExpenseDialog();
