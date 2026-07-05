@@ -624,7 +624,7 @@ class _LandingHero extends StatelessWidget {
       height: 430,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(24),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -794,7 +794,7 @@ class _PaperworkSolvedPanel extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cs.surface.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.35)),
       ),
       child: Row(
@@ -900,7 +900,7 @@ class _PlanPanel extends StatelessWidget {
       padding: EdgeInsets.all(compact ? 14 : 16),
       decoration: BoxDecoration(
         color: cs.surface.withValues(alpha: compact ? 0.92 : 0.72),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: cs.primary.withValues(alpha: 0.16)),
       ),
       child: Row(
@@ -988,7 +988,7 @@ class _FeatureGrid extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: cs.surface.withValues(alpha: 0.82),
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: cs.outlineVariant.withValues(alpha: 0.34),
                 ),

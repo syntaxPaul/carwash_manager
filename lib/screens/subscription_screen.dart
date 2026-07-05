@@ -85,7 +85,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
                       color: cs.surface.withValues(alpha: 0.92),
-                      borderRadius: BorderRadius.circular(28),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: cs.outlineVariant.withValues(alpha: 0.45),
                       ),
@@ -136,9 +136,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                   ),
                             ),
                             const SizedBox(height: 24),
-                            const _RequiredSubscriptionSummary(),
-                            const SizedBox(height: 14),
                             _PlanCard(account: account),
+                            const SizedBox(height: 14),
+                            const _RequiredSubscriptionSummary(),
                             const SizedBox(height: 18),
                             if (account?.isActive ?? false)
                               FilledButton.icon(
@@ -312,9 +312,9 @@ class _RequiredSubscriptionSummary extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cs.primary.withValues(alpha: 0.1),
+        color: cs.surface.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cs.primary.withValues(alpha: 0.32)),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,7 +413,7 @@ class _PlanCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cs.primaryContainer.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: cs.primary.withValues(alpha: 0.18)),
       ),
       child: Column(
@@ -438,6 +438,45 @@ class _PlanCard extends StatelessWidget {
                   backgroundColor: cs.primary.withValues(alpha: 0.12),
                 ),
             ],
+          ),
+          const SizedBox(height: 16),
+          // The price is the decision — give it display weight.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                price,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      height: 1.0,
+                    ),
+              ),
+              const SizedBox(width: 6),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(
+                  '/ month',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: cs.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '1-week free trial for eligible new accounts',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: cs.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
           ),
           const SizedBox(height: 14),
           const _PlanInfoRow(
