@@ -12,6 +12,7 @@ import '../widgets/bottom_nav.dart';
 import '../data/settings.dart';
 import '../utils/vat_math.dart';
 import '../widgets/app_background.dart';
+import '../widgets/wd_kit.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -107,6 +108,52 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _load();
   }
 
+  static const List<String> _presets = [
+    'Today',
+    'This week',
+    'This month',
+    'Last month',
+    'All time',
+  ];
+  String _preset = 'All time';
+
+  void _applyPreset(String preset) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    DateTimeRange? r;
+    switch (preset) {
+      case 'Today':
+        r = DateTimeRange(start: today, end: today);
+        break;
+      case 'This week':
+        r = DateTimeRange(
+          start: today.subtract(Duration(days: today.weekday - 1)),
+          end: today,
+        );
+        break;
+      case 'This month':
+        r = DateTimeRange(
+          start: DateTime(now.year, now.month, 1),
+          end: today,
+        );
+        break;
+      case 'Last month':
+        r = DateTimeRange(
+          start: DateTime(now.year, now.month - 1, 1),
+          end: DateTime(now.year, now.month, 0),
+        );
+        break;
+      case 'All time':
+      default:
+        r = null;
+    }
+    setState(() {
+      _preset = preset;
+      range = r;
+    });
+    _load();
+  }
+
   Future<void> _pickRange() async {
     final now = DateTime.now();
     final r = await showDateRangePicker(
@@ -115,7 +162,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       lastDate: DateTime(now.year + 1),
     );
     if (r != null) {
-      setState(() => range = r);
+      setState(() {
+        range = r;
+        _preset = 'Custom';
+      });
       _load();
     }
   }
@@ -644,29 +694,32 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ListView(
             padding: const EdgeInsets.fromLTRB(18, 24, 18, 150),
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _pickRange,
-                      icon: const Icon(Icons.date_range),
-                      label: Text(range == null
-                          ? 'All time — tap to filter'
-                          : '${ymd(range!.start)} → ${ymd(range!.end)}'),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final preset in _presets) ...[
+                      ChoiceChip(
+                        label: Text(preset),
+                        selected: _preset == preset,
+                        onSelected: (_) => _applyPreset(preset),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    ChoiceChip(
+                      avatar: Icon(
+                        Icons.date_range,
+                        size: 16,
+                        color: _preset == 'Custom' ? Colors.white : null,
+                      ),
+                      label: Text(_preset == 'Custom' && range != null
+                          ? '${ymd(range!.start)} → ${ymd(range!.end)}'
+                          : 'Custom'),
+                      selected: _preset == 'Custom',
+                      onSelected: (_) => _pickRange(),
                     ),
-                  ),
-                  if (range != null) ...[
-                    const SizedBox(width: 8),
-                    IconButton(
-                      tooltip: 'Clear filter',
-                      onPressed: () {
-                        setState(() => range = null);
-                        _load();
-                      },
-                      icon: const Icon(Icons.clear),
-                    ),
-                  ]
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
@@ -676,9 +729,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
               const SizedBox(height: 16),
               if (methods.isNotEmpty) ...[
-                const Text('By payment method',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
+                const WdSectionHeader('By payment method'),
                 ...methods.map((m) => Card(
                       child: ListTile(
                         leading: const Icon(Icons.account_balance_wallet),
